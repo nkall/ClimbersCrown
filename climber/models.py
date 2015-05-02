@@ -36,20 +36,20 @@ class AthleteCityScore(models.Model):
 	cumulativeTime = models.IntegerField()
 	cityScore = models.IntegerField()
 
-	leaderboardPlacement = models.IntegerField()
+	rank = models.IntegerField()
 	def __str__(self):
-		return str(self.athleteId) + " " + self.city + " " + str(self.leaderboardPlacement)
+		return str(self.athleteId) + " " + str(self.city) + " " + str(self.rank)
 
 # Placement changes are only saved over the past week
 class PlacementChange(models.Model):
 	athleteId = models.ForeignKey(Athlete)
 	city = models.ForeignKey(City)
-	oldPlacement = models.IntegerField()
-	newPlacement = models.IntegerField()
+	oldRank = models.IntegerField()
+	newRank = models.IntegerField()
 	changeDate = models.DateTimeField()
 
 	def __str__(self):
-		return str(self.changeDate) + " " + str(self.oldPlacement) + " " + str(self.newPlacement)
+		return str(self.changeDate) + " " + str(self.oldRank) + " " + str(self.newRank)
 
 	def isOutOfDate(self):
 		return self.changeDate >= timezone.now() - datetime.timedelta(days=7)

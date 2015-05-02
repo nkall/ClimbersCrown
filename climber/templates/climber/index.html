@@ -1,0 +1,9 @@
+{% if city %}	
+    <ul>
+    {% for score in city %}
+        <li>{{ score }}</li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>City not found.</p>
+{% endif %}
