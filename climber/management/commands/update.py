@@ -14,11 +14,8 @@ class Command(BaseCommand):
 
 
 class LeaderboardUpdater:
-	def update(self):
-		self.updateLeaderboard()
-
 	# Generates full city leaderboard based on segment leaderboards
-	def updateLeaderboard(self):
+	def update(self):
 		citySegments = Segment.objects.filter(city=self.cityName)
 		allUpdatedAthletes = []
 		for segment in citySegments:
@@ -28,12 +25,21 @@ class LeaderboardUpdater:
 			allUpdatedAthletes = list(set(allUpdatedAthletes)|set(slu.getUpdatedAthletes()))
 
 		# TODO: Recalculate overall scores for athletes with updated segment times
-		for athlete in allUpdatedAthletes:
-			print(athlete)
+		if allUpdatedAthletes != []:
+			for athleteId in allUpdatedAthletes:
+				newScore = self.calculateScore(athleteId)
+				print(newScore)
 
-	# TODO
-	def updateScore(self):
-		pass
+	def calculateScore(self, athleteId):
+		overallScore = 0
+		segmentPlacements = AthleteSegmentScore.objects.raw(
+					'''SELECT s.id, s.segmentScore
+					   FROM   climber_athletesegmentscore s, climber_segment seg
+					   WHERE  s.segmentId_id = seg.id and seg.city_id = %s and s.athleteId_id = %s 
+					''', [self.cityName, athleteId])
+		for placement in segmentPlacements:
+			overallScore += placement.segmentScore
+		return overallScore
 
 	# TODO
 	def recordPlacementChange(self, oldAthleteData, athlete):
@@ -62,7 +68,7 @@ class SegmentLeaderboardUpdater:
 
 			# Add new or improved athlete and segment score to database
 			if len(oldAthleteScore) < 1:
-				self.addSegmentAthlete(athlete, leaderboard.entry_count)
+				self.addAthlete(athlete, leaderboard.entry_count)
 			elif (oldAthleteScore[0].segmentTime != athlete.elapsed_time.total_seconds()):
 				self.updateAthleteSegmentScore(oldAthleteScore[0], athlete, 
 											   leaderboard.entry_count)
@@ -72,7 +78,8 @@ class SegmentLeaderboardUpdater:
 			if wasUpdated:
 				self.updatedAthletes.append(athlete.athlete_id)
 
-	def addSegmentAthlete(self, athlete, totalEfforts):
+	# Adds new athlete to database, plus their score for the given segment
+	def addAthlete(self, athlete, totalEfforts):
 		# Male is the default gender internally to make it easier
 		if athlete.athlete_gender is None:
 			athlete.athlete_gender = 'M'
