@@ -3,6 +3,7 @@ from django.db import models
 class Athlete(models.Model):
 	id = models.IntegerField(primary_key=True)
 	name = models.CharField(max_length=200)
+	gender = models.CharField(max_length=1)
 	def __str__(self):
 		return self.name
 
@@ -22,12 +23,18 @@ class AthleteSegmentScore(models.Model):
 	athleteId = models.ForeignKey(Athlete)
 	segmentId = models.ForeignKey(Segment)
 	effortId = models.IntegerField()
+	activityId = models.IntegerField()
 
 	# Time taken to complete the segment, expressed in seconds
 	segmentTime = models.IntegerField()
 	segmentScore = models.IntegerField()
+
+	# Surrogate composite primary key (thanks StackOverflow)
+	class Meta:
+		unique_together = (("athleteId", "segmentId"),)
+
 	def __str__(self):
-		return str(self.athleteId) + " " + str(self.segmentScore)
+		return str(self.athleteId) + " " + str(self.segmentScore) + " " + str(self.segmentId)
 
 class AthleteCityScore(models.Model):
 	athleteId = models.ForeignKey(Athlete)
