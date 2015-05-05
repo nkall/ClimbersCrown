@@ -1,4 +1,6 @@
 from django.db import models
+from django.utils import timezone
+from datetime import timedelta
 
 class Athlete(models.Model):
 	id = models.IntegerField(primary_key=True)
@@ -40,9 +42,7 @@ class AthleteCityScore(models.Model):
 	athleteId = models.ForeignKey(Athlete)
 	city = models.ForeignKey(City)
 
-	cumulativeTime = models.IntegerField()
 	cityScore = models.IntegerField()
-
 	rank = models.IntegerField()
 	def __str__(self):
 		return str(self.athleteId) + " " + str(self.city) + " " + str(self.rank)
@@ -59,4 +59,4 @@ class PlacementChange(models.Model):
 		return str(self.changeDate) + " " + str(self.oldRank) + " " + str(self.newRank)
 
 	def isOutOfDate(self):
-		return self.changeDate >= timezone.now() - datetime.timedelta(days=7)
+		return self.changeDate >= timezone.now() - timedelta(days=7)
