@@ -43,6 +43,7 @@ class AthleteCityScore(models.Model):
 	city = models.ForeignKey(City)
 
 	cityScore = models.IntegerField()
+	cumulativeTime = models.IntegerField()
 	rank = models.IntegerField()
 	def __str__(self):
 		return str(self.athleteId) + " " + str(self.city) + " " + str(self.rank)

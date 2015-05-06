@@ -8,6 +8,7 @@ class Command(BaseCommand):
 		client = Client()
 		client.access_token = '20bf9e2864c1411d17d9cab8c11aa8dbe626aedd'
 		for city in City.objects.all():
+			print(str(city) + "!!!!")
 			updater = CityLeaderboardUpdater(city, client)
 			updater.update()
 
@@ -20,20 +21,24 @@ class CityLeaderboardUpdater:
 		for segment in citySegments:
 			slu = SegmentLeaderboardUpdater(segment, self.client)
 			slu.update()
+			updatedAthletes = slu.getUpdatedAthletes()
 			# Concatenate athlete lists without duplicates
-			allUpdatedAthletes = list(set(allUpdatedAthletes)|set(slu.getUpdatedAthletes()))
+			allUpdatedAthletes += [ath for ath in updatedAthletes if ath not in allUpdatedAthletes]
 
 		# Recalculate overall scores for athletes with updated segment times
 		if allUpdatedAthletes != []:
 			for athlete in allUpdatedAthletes:
-				newScore = self.calculateScore(athlete.id)
-				self.updateCityScore(athlete, newScore)
+				newScore, newCumulativeTime = self.calculateScoreAndCumulativeTime(athlete.id)
+				if newScore < 1:
+					athlete.delete()
+				else:
+					self.updateCityScore(athlete, newScore, newCumulativeTime)
 			self.updateCityRanks()
 		self.removeOldPlacementChanges()
-		print(AthleteCityScore.objects.filter(city=self.city.name).order_by('cityScore')[0])
 
-	def calculateScore(self, athleteId):
+	def calculateScoreAndCumulativeTime(self, athleteId):
 		overallScore = 0
+		cumulativeTime = 0
 		segmentPlacements = AthleteSegmentScore.objects.raw(
 					'''SELECT s.id, s.segmentScore
 					   FROM   climber_athletesegmentscore s, climber_segment seg
@@ -41,20 +46,22 @@ class CityLeaderboardUpdater:
 					''', [self.city.name, athleteId])
 		for placement in segmentPlacements:
 			overallScore += placement.segmentScore
-		return overallScore
+			cumulativeTime += placement.segmentTime
+		return overallScore, cumulativeTime
 
-	def updateCityScore(self, athlete, newScore):
+	def updateCityScore(self, athlete, newScore, newCumulativeTime):
 		oldPlacement = AthleteCityScore.objects.filter(athleteId=athlete, city=self.city.name)
-		if len(oldPlacement) < 1:
-			acs = AthleteCityScore(athleteId=athlete, city=self.city, cityScore=newScore, 
-								   rank=-1)
-			acs.save()
-		else:
+		if oldPlacement:
 			oldPlacement[0].cityScore = newScore
+			oldPlacement[0].cumulativeTime = newCumulativeTime
 			oldPlacement[0].save()
+		else:
+			acs = AthleteCityScore(athleteId=athlete, city=self.city, cityScore=newScore,
+								   cumulativeTime=newCumulativeTime, rank=-1)
+			acs.save()
 
 	def updateCityRanks(self):
-		newLeaderboard = AthleteCityScore.objects.filter(city=self.city.name).order_by('-cityScore')
+		newLeaderboard = AthleteCityScore.objects.filter(city=self.city.name).order_by('-cityScore', 'cumulativeTime')
 		for i, entry in enumerate(newLeaderboard):
 			if entry.rank != (i+1):
 				print("Changed rank " + str(entry) + " to " + str(i+1))
@@ -72,7 +79,7 @@ class CityLeaderboardUpdater:
 
 	def removeOldPlacementChanges(self):
 		placementChanges = PlacementChange.objects.all()
-		for pc in placementChanges:
+		for pc in placementChanges.iterator():
 			if pc.isOutOfDate():
 				pc.delete()
 
@@ -93,28 +100,47 @@ class SegmentLeaderboardUpdater:
 			if leaderboard.entry_count < page * 200:
 				break
 		self.updatedAthletes = []
+		processedSegmentScores = []
 		for leaderboard in leaderboards:
-			self.updateLeaderboard(leaderboard)
+			allSegmentScores = AthleteSegmentScore.objects.filter(segmentId=self.segment.id)
+			processedSegmentScores += self.updateLeaderboard(leaderboard, allSegmentScores)
+		oldSegmentScores = [ath for ath in allSegmentScores if ath not in processedSegmentScores]
+		self.deleteOldSegmentScores(oldSegmentScores)
 
-	def updateLeaderboard(self, leaderboard):
+
+	def updateLeaderboard(self, leaderboard, allSegmentScores):
+		processedSegmentScores = []
 		for athlete in leaderboard:
 			# Ignore the "contextual" athlete scores around the account which registered the app
 			if athlete.rank > self.leaderboardPageNum * 200:
 				break
 
 			# Get existing athlete data from database, if possible
-			oldAthleteScore = AthleteSegmentScore.objects.filter(athleteId=athlete.athlete_id, 
-																segmentId=self.segment.id)
+			oldAthleteScore = allSegmentScores.filter(athleteId=athlete.athlete_id)
 
 			# Add new or improved athlete and segment score to database
-			if len(oldAthleteScore) < 1:
+			newAthleteCount = 0
+			if oldAthleteScore:
+				if (oldAthleteScore[0].segmentTime != athlete.elapsed_time.total_seconds()):
+					self.updateAthleteSegmentScore(oldAthleteScore[0], athlete, 
+												   leaderboard.entry_count)
+					self.updatedAthletes.append(oldAthleteScore[0].athleteId)
+				processedSegmentScores.append(oldAthleteScore[0])
+			else:
 				newAthlete = self.addAthlete(athlete, leaderboard.entry_count)
-				self.addAthleteSegmentScore(newAthlete, athlete, leaderboard.entry_count)
+				newSegScore = self.addAthleteSegmentScore(newAthlete, athlete, 
+														  leaderboard.entry_count)
 				self.updatedAthletes.append(newAthlete)
-			elif (oldAthleteScore[0].segmentTime != athlete.elapsed_time.total_seconds()):
-				self.updateAthleteSegmentScore(oldAthleteScore[0], athlete, 
-											   leaderboard.entry_count)
-				self.updatedAthletes.append(oldAthleteScore[0].athleteId)
+				processedSegmentScores.append(newSegScore)				
+		return processedSegmentScores
+
+	# Remove athletes whose times are no longer valid, e.g. over #1000, deleted ride, new year etc.
+	def deleteOldSegmentScores(self, oldScores):
+		for score in oldScores:
+			print("Deleted score: " + str(score))
+			self.updatedAthletes.append(score.athleteId)
+			score.delete()
+
 
 	# Adds new athlete to database, plus their score for the given segment
 	def addAthlete(self, athlete, totalEfforts):
@@ -135,6 +161,7 @@ class SegmentLeaderboardUpdater:
 								  segmentTime=apiAthlete.elapsed_time.total_seconds(),
 								  segmentScore=score)
 		ass.save()
+		return ass
 
 	# Calculate score for given segment and use it to update segment score entry
 	# This is an ugly hack since Django doesn't allow composite keys and tries to insert instead

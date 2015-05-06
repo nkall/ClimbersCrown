@@ -4,5 +4,5 @@ from . import views
 
 urlpatterns = [
     url(r'^$', views.index, name='index'),
-    url(r'^(?P<cityName>[a-zA-Z_]+)/$', views.city, name='city'),
+    url(r'^(?P<cityName>[a-zA-Z_]+)/$', views.leaderboard, name='leaderboard'),
 ]

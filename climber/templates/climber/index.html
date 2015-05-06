@@ -1,9 +1,25 @@
-{% if city %}	
-    <ul>
-    {% for score in city %}
-        <li>{{ score }}</li>
-    {% endfor %}
-    </ul>
-{% else %}
-    <p>City not found.</p>
-{% endif %}
+<table>
+<tr>
+	<td>Rank</td>
+	<td>Athlete</td>
+	{% for seg in segments %}
+		<td>{{ seg.name }}</td>
+	{% endfor %}
+	<td>Total</td>
+</tr>
+<!-- Leaderboard -->
+	{% for entry in podium %}
+	<tr>
+		<td>{{ entry.cityScore.rank }}</td>
+		<td>{{ entry.athlete.name }}</td>
+		{% for segScore in entry.segmentScores %}
+			{% if segScore %}
+				<td>{{ segScore.segmentScore }}</td>
+			{% else %}
+				<td>--</td>
+			{% endif %}
+		{% endfor %}
+		<td>{{ entry.cityScore.cityScore }}</td>
+	</tr>
+	{% endfor %}
+</table>
