@@ -8,7 +8,6 @@ class Command(BaseCommand):
 		client = Client()
 		client.access_token = '20bf9e2864c1411d17d9cab8c11aa8dbe626aedd'
 		for city in City.objects.all():
-			print(str(city) + "!!!!")
 			updater = CityLeaderboardUpdater(city, client)
 			updater.update()
 
@@ -16,25 +15,30 @@ class Command(BaseCommand):
 class CityLeaderboardUpdater:
 	# Generates full city leaderboard based on segment leaderboards
 	def update(self):
+		self.removeOldPlacementChanges()
+
 		citySegments = Segment.objects.filter(city=self.city.name)
 		allUpdatedAthletes = []
-		for segment in citySegments:
-			slu = SegmentLeaderboardUpdater(segment, self.client)
-			slu.update()
-			updatedAthletes = slu.getUpdatedAthletes()
-			# Concatenate athlete lists without duplicates
-			allUpdatedAthletes += [ath for ath in updatedAthletes if ath not in allUpdatedAthletes]
+		try:
+			for segment in citySegments:
+				slu = SegmentLeaderboardUpdater(segment, self.client)
+				slu.update()
+				updatedAthletes = slu.getUpdatedAthletes()
+				# Concatenate athlete lists without duplicates
+				allUpdatedAthletes += [ath for ath in updatedAthletes \
+									   if ath not in allUpdatedAthletes]
 
-		# Recalculate overall scores for athletes with updated segment times
-		if allUpdatedAthletes != []:
-			for athlete in allUpdatedAthletes:
-				newScore, newCumulativeTime = self.calculateScoreAndCumulativeTime(athlete.id)
-				if newScore < 1:
-					athlete.delete()
-				else:
-					self.updateCityScore(athlete, newScore, newCumulativeTime)
-			self.updateCityRanks()
-		self.removeOldPlacementChanges()
+			# Recalculate overall scores for athletes with updated segment times
+			if allUpdatedAthletes != []:
+				for athlete in allUpdatedAthletes:
+					newScore, newCumulativeTime = self.calculateScoreAndCumulativeTime(athlete.id)
+					if newScore < 1:
+						athlete.delete()
+					else:
+						self.updateCityScore(athlete, newScore, newCumulativeTime)
+				self.updateCityRanks()
+		except HTTPError as e:
+			print("Encountered error from Strava: " + e)
 
 	def calculateScoreAndCumulativeTime(self, athleteId):
 		overallScore = 0
@@ -78,7 +82,7 @@ class CityLeaderboardUpdater:
 		pc.save()
 
 	def removeOldPlacementChanges(self):
-		placementChanges = PlacementChange.objects.all()
+		placementChanges = PlacementChange.objects.filter(city=self.city)
 		for pc in placementChanges.iterator():
 			if pc.isOutOfDate():
 				pc.delete()

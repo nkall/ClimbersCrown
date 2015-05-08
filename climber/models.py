@@ -60,4 +60,4 @@ class PlacementChange(models.Model):
 		return str(self.changeDate) + " " + str(self.oldRank) + " " + str(self.newRank)
 
 	def isOutOfDate(self):
-		return self.changeDate >= timezone.now() - timedelta(days=7)
+		return self.changeDate < timezone.now() - timedelta(days=7)

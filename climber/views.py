@@ -37,25 +37,71 @@ class Entry:
 
 		self.segmentScores = []
 		for seg in segments:
-			score = AthleteSegmentScore.objects.filter(segmentId=seg, athleteId=athlete)
-			if len(score) < 1:
-				self.segmentScores.append(None)
-			else:
-				self.segmentScores.append(score[0])
+			sse = SegmentScoreEntry()
+			sse.genScoreEntry(seg, athlete)
+			self.segmentScores.append(sse)
+
+class SegmentScoreEntry:
+	def genScoreEntry(self, segment, athlete):
+		scoreEntry = AthleteSegmentScore.objects.filter(segmentId=segment, athleteId=athlete)
+		if scoreEntry:
+			score = scoreEntry[0]
+			self.hasScore = True
+			self.scoreVal = score.segmentScore
+			self.effortTimeStr = self.formatEffortTime(score.segmentTime)
+			self.effortUrl = self.formatEffortUrl(score.activityId, score.effortId)
+
+	def formatEffortTime(self, time):
+		hours = int(time / 3600)
+		minutes = int(time / 60) - hours
+		seconds = time % 60
+		formattedTime = ""
+		if hours > 0:
+			formattedTime += str(hours) + ":"
+			if minutes < 10:
+				formattedTime += "0"
+		formattedTime += str(minutes) + ":"
+
+		if seconds < 10:
+			formattedTime += "0"
+		formattedTime += str(seconds)
+
+		return formattedTime
+
+	def formatEffortUrl(self, activityId, effortId):
+		return "http://www.strava.com/activities/" + str(activityId) + "/segments/" + str(effortId)
+
+	def __init__(self):
+		self.hasScore = False
+		self.scoreVal = -1
+		self.effortTimeStr = ""
+		self.effortUrl = ""
+
 
 class WeeklyChangeEntry:
 	def consolidateChanges(self, currentScore, changes):
 		if len(changes) < 1:
 			self.netChange = 0
-			self.dateOfChange = timezone.now() - timedelta(days=7)
+			self.dateOfChange = (timezone.now() - timedelta(days=7)).strftime("%d %b %Y")
 		else:
 			orderedChanges = changes.order_by("-changeDate")
-			newestChange = orderedChanges[0]
 			oldestChange = orderedChanges[len(orderedChanges)-1]
-			self.dateOfChange = newestChange.changeDate
-			self.netChange = oldestChange.oldRank - newestChange.newRank
+			newestChange = orderedChanges[0]
+			if oldestChange.oldRank > 500 or oldestChange.oldRank == -1:
+				self.isNew = True
+				self.dateOfChange = oldestChange.changeDate.strftime("%d %b %Y")
+			else:
+				self.dateOfChange = oldestChange.changeDate.strftime("%d %b %Y")
+				self.netChange = oldestChange.oldRank - newestChange.newRank
+				if self.netChange > 0:
+					self.isUp = True
+				elif self.netChange < 0:
+					self.isDown = True
 
 	def __init__(self):
 		# All fields set in consolidateChanges()
 		self.netChange = None
 		self.dateOfChange = None
+		self.isNew = False
+		self.isUp = False
+		self.isDown = False

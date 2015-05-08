@@ -1,24 +1,49 @@
 <table>
 <tr>
+	<b>
 	<td>Rank</td>
 	<td>Athlete</td>
 	{% for seg in segments %}
-		<td>{{ seg.name }}</td>
+		<td><a href="http://www.strava.com/segments/{{ seg.id }}"</a>{{ seg.name }}</td>
 	{% endfor %}
 	<td>Total</td>
+	</b>
 </tr>
 <!-- Leaderboard -->
+	{% load staticfiles %}
 	{% for entry in podium %}
 	<tr>
-		<td>{{ entry.cityScore.rank }}</td>
-		<td>{{ entry.athlete.name }}</td>
+		<!-- Rank -->
+		<td>
+			{% if entry.weeklyChange.isNew %}
+				<a href="#" title="New entry on {{ entry.weeklyChange.dateOfChange }}"><img src="{% static "plus.png" %}" alt="Down"/></a>
+			{% elif entry.weeklyChange.isUp %}
+				<a href="#" title="Up {{ entry.weeklyChange.netChange }} since {{ entry.weeklyChange.dateOfChange }}"><img src="{% static "arrowup.png" %}" alt="Up"/></a>
+			{% elif entry.weeklyChange.isDown %}
+				<a href="#" title="Down {{ entry.weeklyChange.netChange }} since {{ entry.weeklyChange.dateOfChange }}"><img src="{% static "arrowdown.png" %}" alt="Down"/>
+			{% else %}
+				<a href="#" title="No change since {{ entry.weeklyChange.dateOfChange }}"><img src="{% static "circle.png" %}" alt="No change"/></a>
+			{% endif %}
+			{{ entry.cityScore.rank }}
+		</td>
+		<!-- Athlete Name -->
+		<td>
+			<a href="http://www.strava.com/athletes/{{ entry.athlete.id }}">{{ entry.athlete.name }}</a>
+			{% if entry.athlete.gender == 'F' %}
+				<img src="{% static "female.png" %}" alt="Female Athlete"/>
+			{% endif %}
+		</td>
+		<!-- Athlete Segment Scores/Times -->
 		{% for segScore in entry.segmentScores %}
-			{% if segScore %}
-				<td>{{ segScore.segmentScore }}</td>
+			{% if segScore.hasScore %}
+				<td>
+					<b>{{ segScore.scoreVal }}</b> <i>(<a href="{{ segScore.effortUrl }}" >{{ segScore.effortTimeStr }}</a>)</i>
+				</td>
 			{% else %}
 				<td>--</td>
 			{% endif %}
 		{% endfor %}
+		<!-- Athlete Overall Score -->
 		<td>{{ entry.cityScore.cityScore }}</td>
 	</tr>
 	{% endfor %}
