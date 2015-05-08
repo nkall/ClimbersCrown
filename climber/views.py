@@ -1,17 +1,33 @@
 from django.shortcuts import get_object_or_404, render
 from .models import *
+from datetime import datetime
 
 def leaderboard(request, cityName):
-    cityRow = get_object_or_404(City, pk=cityName)
-    cpg = CityPodiumGenerator(cityRow)
-    entries = cpg.generateEntries()
-    segments = cpg.segs
+	cityRow = get_object_or_404(City, pk=cityName)
+	cpg = CityPodiumGenerator(cityRow)
+	entries = cpg.generateEntries()
+	segments = cpg.segs
+	year = datetime.now().year
+	test = CityName(cityRow)
+	formattedCityName = CityName(cityRow).formattedName
+	otherCities = [CityName(c) for c in City.objects.exclude(pk=cityName)]
 
-    return render(request, 'climber/index.html', {'podium': entries, 'segments': segments})
+	return render(request, 'climber/index.html', {'podium': entries, 'segments': segments,
+												  'city':formattedCityName,
+												  'otherCities':otherCities,
+												  'thisYear':year})
 
 def index(request):
 	return render(request, 'climber/index.html')
 
+'''
+' ' Various classes used to generate leaderboard
+'''
+
+class CityName:
+	def __init__(self, city):
+		self.name = city.name
+		self.formattedName = city.name.replace('_',' ')
 
 class CityPodiumGenerator:
 	def generateEntries(self):
@@ -30,6 +46,7 @@ class Entry:
 	def __init__(self, athlete, city, cityScore, segments):
 		self.athlete = athlete
 		self.cityScore = cityScore
+		self.isChamp = (cityScore.rank == 1)
 
 		self.weeklyChange = WeeklyChangeEntry()
 		self.weeklyChange.consolidateChanges(self.cityScore,
@@ -53,7 +70,7 @@ class SegmentScoreEntry:
 
 	def formatEffortTime(self, time):
 		hours = int(time / 3600)
-		minutes = int(time / 60) - hours
+		minutes = int(time / 60) - (hours * 60)
 		seconds = time % 60
 		formattedTime = ""
 		if hours > 0:
@@ -97,6 +114,7 @@ class WeeklyChangeEntry:
 					self.isUp = True
 				elif self.netChange < 0:
 					self.isDown = True
+					self.netChange = -self.netChange
 
 	def __init__(self):
 		# All fields set in consolidateChanges()

@@ -2,12 +2,17 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from climber.models import *
 from stravalib.client import Client
+import requests
 
 class Command(BaseCommand):
 	def handle(self, *args, **options):
 		client = Client()
 		client.access_token = '20bf9e2864c1411d17d9cab8c11aa8dbe626aedd'
-		for city in City.objects.all():
+		cityEntries = City.objects.all()
+		if not cityEntries:
+			cityEntries = createDefaultCitySegments()
+
+		for city in cityEntries:
 			updater = CityLeaderboardUpdater(city, client)
 			updater.update()
 
@@ -37,8 +42,8 @@ class CityLeaderboardUpdater:
 					else:
 						self.updateCityScore(athlete, newScore, newCumulativeTime)
 				self.updateCityRanks()
-		except HTTPError as e:
-			print("Encountered error from Strava: " + e)
+		except requests.exceptions.HTTPError as e:
+			print("Encountered error from Strava: " + str(e))
 
 	def calculateScoreAndCumulativeTime(self, athleteId):
 		overallScore = 0
@@ -197,3 +202,30 @@ class SegmentLeaderboardUpdater:
 		self.updatedAthletes = []
 		# Number of athlete scores we keep track of (x * 200)
 		self.leaderboardPageNum = 5
+
+# In case of db flush
+def createDefaultCitySegments():
+	cities = ['San_Diego', 'Santa_Cruz', 'San_Francisco', 'SF_Bay_Area']
+	cityRows = []
+	for city in cities:
+		cityRow = City(name=city)
+		cityRows.append(cityRow)
+		cityRow.save()
+	segments = [{'id':2457644, 'name':'Soledad Mtn Rd', 'city':cityRows[0]},
+				{'id':699494, 'name':'Torrey Pines', 'city':cityRows[0]},
+				{'id':1340110, 'name':'Cabrillo Tide Pools', 'city':cityRows[0]},
+				{'id':3291827, 'name':'Empire Grade', 'city':cityRows[1]},
+				{'id':631431, 'name':'Mtn Charlie', 'city':cityRows[1]},
+				{'id':619799, 'name':'Bonny Doon Rd', 'city':cityRows[1]},
+				{'id':141491, 'name':'Twin Peaks', 'city':cityRows[2]},
+				{'id':7167086, 'name':'Legion of Honor Hill', 'city':cityRows[2]},
+				{'id':378701, 'name':'San Bruno', 'city':cityRows[2]},
+				{'id':1470688, 'name':'Mt. Diablo', 'city':cityRows[3]},
+				{'id':229781, 'name':'Hawk Hill', 'city':cityRows[3]},
+				{'id':611152, 'name':'Little Pinehurst', 'city':cityRows[3]}
+				]
+	for segment in segments:
+		segRow = Segment(segment['id'], segment['name'], segment['city'])
+		segRow.save()
+	return cityRows
+
