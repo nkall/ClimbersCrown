@@ -9,12 +9,20 @@ class Command(BaseCommand):
 		client = Client()
 		client.access_token = '20bf9e2864c1411d17d9cab8c11aa8dbe626aedd'
 		cityEntries = City.objects.all()
+		resetPlaceChanges = False
 		if not cityEntries:
 			cityEntries = createDefaultCitySegments()
+			resetPlaceChanges = True
 
 		for city in cityEntries:
 			updater = CityLeaderboardUpdater(city, client)
 			updater.update()
+
+		# Delete placement changes if data has just been reset
+		if resetPlaceChanges:
+			placementChanges = PlacementChange.objects.all()
+			for pc in placementChanges.iterator():
+				pc.delete()
 
 
 class CityLeaderboardUpdater:
@@ -35,15 +43,20 @@ class CityLeaderboardUpdater:
 
 			# Recalculate overall scores for athletes with updated segment times
 			if allUpdatedAthletes != []:
-				for athlete in allUpdatedAthletes:
-					newScore, newCumulativeTime = self.calculateScoreAndCumulativeTime(athlete.id)
-					if newScore < 1:
-						athlete.delete()
-					else:
-						self.updateCityScore(athlete, newScore, newCumulativeTime)
+				self.recalculateCityScores(allUpdatedAthletes)
 				self.updateCityRanks()
-		except requests.exceptions.HTTPError as e:
-			print("Encountered error from Strava: " + str(e))
+		except (requests.exceptions.ConnectionError, requests.exceptions.HTTPError) as e:
+			print("Encountered error from Strava: " + str(e) + ". Recalculating athlete scores...")
+			self.recalculateCityScores(Athlete.objects.all())
+			self.updateCityRanks()
+
+	def recalculateCityScores(self, athleteList):
+		for athlete in athleteList:
+			newScore, newCumulativeTime = self.calculateScoreAndCumulativeTime(athlete.id)
+			if newScore < 1:
+				athlete.delete()
+			else:
+				self.updateCityScore(athlete, newScore, newCumulativeTime)
 
 	def calculateScoreAndCumulativeTime(self, athleteId):
 		overallScore = 0
@@ -77,7 +90,9 @@ class CityLeaderboardUpdater:
 				self.changeRank(entry, i+1)
 
 	def changeRank(self, entry, newRank):
-		self.recordPlacementChange(entry, newRank)
+		# We don't care about rank changes outside top 500
+		if newRank <= 500:
+			self.recordPlacementChange(entry, newRank)
 		entry.rank = newRank
 		entry.save()
 
@@ -219,10 +234,10 @@ def createDefaultCitySegments():
 				{'id':619799, 'name':'Bonny Doon Rd', 'city':cityRows[1]},
 				{'id':141491, 'name':'Twin Peaks', 'city':cityRows[2]},
 				{'id':7167086, 'name':'Legion of Honor Hill', 'city':cityRows[2]},
-				{'id':378701, 'name':'San Bruno', 'city':cityRows[2]},
+				{'id':229781, 'name':'Hawk Hill', 'city':cityRows[2]},
 				{'id':1470688, 'name':'Mt. Diablo', 'city':cityRows[3]},
-				{'id':229781, 'name':'Hawk Hill', 'city':cityRows[3]},
-				{'id':611152, 'name':'Little Pinehurst', 'city':cityRows[3]}
+				{'id':678363, 'name':'Mt. Tamalpais', 'city':cityRows[3]},
+				{'id':6473039, 'name':'Mt. Hamilton', 'city':cityRows[3]}
 				]
 	for segment in segments:
 		segRow = Segment(segment['id'], segment['name'], segment['city'])

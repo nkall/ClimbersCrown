@@ -2,8 +2,15 @@
 <head>
 	{% load staticfiles %}
 	<meta charset="utf-8">
+	<link rel="shortcut icon" type="image/png" href="{% static "favicon.ico" %}"/>
 	<link href="{% static "bootstrap/css/bootstrap.css" %}" rel="stylesheet">
-	<title>Climber's Crown {{ city }}</title>
+	<title>Climber's Crown</title>
+	<style>
+	.jumbotron {
+		background-image: url("{% static "hampsten.jpg" %}");
+		background-size: cover;
+		vertical-align: top;}
+	</style>
 </head>
 <body role="document">
 	<!-- Navbar -->
@@ -16,78 +23,46 @@
 					<span class="icon-bar"></span>
 					<span class="icon-bar"></span>
 				</button>
-				<a class="navbar-brand" href="#">Climber's Crown</a>
+				<a class="navbar-brand" href="/">Climber's Crown</a>
 			</div>
 			<div id="navbar" class="collapse navbar-collapse">
 				<ul class="nav navbar-nav">
-					<li class="active"><a href="#">{{ city }}</a></li>
-					{% for otherCity in otherCities %}
-						<li><a href="/podium/{{ otherCity.name }}">{{ otherCity.formattedName }}</a></li>
+					{% for city in cities %}
+						<li><a href="/podium/{{ city.name }}">{{ city.formattedName }}</a></li>
 					{% endfor %}
-					<li><a href="#about">About</a></li>
 				</ul>
 			</div>
 		</div>
+	<!-- I know, this bunch of breaks is a hideous solution.  I'm no designer -->
+	<div class="jumbotron"><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><div class="container"><h1>Climber's Crown {{ thisYear }}</h1></div></div>
 	</nav>
+
 <div class="container" role="main">
 	<!-- Leaderboard -->
-	<h1>{{ city }} Leaderboard {{ thisYear }}</h1>
-	<table class="table table-condensed">
-		<thead>
-		<tr>
-			<th>Rank</th>
-			<th>Athlete</th>
-			{% for seg in segments %}
-				<th><a href="http://www.strava.com/segments/{{ seg.id }}"</a>{{ seg.name }}</th>
-			{% endfor %}
-			<th>Total</th>
-		</tr>
-		</thead>
-		<!-- Leaderboard -->
-		{% for entry in podium %}
-		<tbody>
-		<tr>
-		<!-- Rank -->
-			<td>
-				{% if entry.isChamp %}
-					{% if entry.weeklyChange.isUp %}
-						<a href="#" title="New champion since {{ entry.weeklyChange.dateOfChange }}"><img src="{% static "crown.png" %}" alt="New Champion"/></a>
-					{% else %}
-						<a href="#" title="Current Champion"><img src="{% static "crown.png" %}" alt="Champion"/></a>
-					{% endif %}
-				{% elif entry.weeklyChange.isNew %}
-					<a href="#" title="New entry on {{ entry.weeklyChange.dateOfChange }}"><img src="{% static "plus.png" %}" alt="Down"/></a>
-				{% elif entry.weeklyChange.isUp %}
-					<a href="#" title="Up {{ entry.weeklyChange.netChange }} since {{ entry.weeklyChange.dateOfChange }}"><img src="{% static "arrowup.png" %}" alt="Up"/></a>
-				{% elif entry.weeklyChange.isDown %}
-					<a href="#" title="Down {{ entry.weeklyChange.netChange }} since {{ entry.weeklyChange.dateOfChange }}"><img src="{% static "arrowdown.png" %}" alt="Down"/></a>
-				{% else %}
-					<a href="#" title="No change since {{ entry.weeklyChange.dateOfChange }}"><img src="{% static "circle.png" %}" alt="No change"/></a>
-				{% endif %}
-				{{ entry.cityScore.rank }}
-			</td>
-			<!-- Athlete Name -->
-			<td>
-				<a href="http://www.strava.com/athletes/{{ entry.athlete.id }}">{{ entry.athlete.name }}</a>
-				{% if entry.athlete.gender == 'F' %}
-					<img src="{% static "female.png" %}" alt="Female Athlete"/>
-				{% endif %}
-			</td>
-			<!-- Athlete Segment Scores/Times -->
-			{% for segScore in entry.segmentScores %}
-				{% if segScore.hasScore %}
-					<td>
-						<b>{{ segScore.scoreVal }}</b> <i>(<a href="{{ segScore.effortUrl }}" >{{ segScore.effortTimeStr }}</a>)</i>
-					</td>
-				{% else %}
-					<td>--</td>
-				{% endif %}
-			{% endfor %}
-			<!-- Athlete Overall Score -->
-			<td><b>{{ entry.cityScore.cityScore }}</b></td>
-		</tr>
+	<p class="lead">We've selected three popular cycling climbs from various California cities and used their Strava data to create overall leaderboards for that area.  Do you have what it takes to earn this year's title of climbing champion in your city?<br><br>
+	Select a city:</p>
+		<ul class="fa-ul">
+		{% for city in cities %}
+			<li><i class="fa-li fa fa-square"></i><a href="/podium/{{ city.name }}">{{ city.formattedName }}</a></li>
 		{% endfor %}
-		</tbody>
-	</table>
+		</ul>
+	<br>
+	<p>This project was based on the Norwegian site <a href="http://www.klatrekonge.com/">Klatrekongen</a> by <a href="http://www.martinhoff.com/">Martin Hoff</a>.  Questions, issues, suggestions?
+	<!-- Webcrawler Protection -->
+	<script type="text/javascript">
+  		document.write('<a href="mailto:nkallhovd' + 'e@gmail.com">Contact Me</a>')
+	</script>
+	</p><br>
+	<h3>Scoring System</h3>
+	<p>For each of the three segments in a city, an athlete can accrue a maximum of 1,000 points.  The athlete on the segment with the top time for this year earns the maximum score. If the segment has been ridden by 1,000 or more athletes this year, each of the top 1,000 gets one less point than the athlete before them, so second place gets 999, third gets 998, and so on.  If there are fewer athletes than 1,000, points are assigned based on a ratio of their rank versus the overall rider count, so with 500 riders, the second place athlete would only get 998 points.  These scores are summed up to create the total score, and in case of ties, the athlete with the lowest cumulative time on all three segments is given the advantage.</p>
 </div>
+<br><br>
 </body>
+
+
+<!-- For some webcrawler protection -->
+<script>
+    $( document ).ready(function() {
+        $('#contactBox').html('<a href="mailto:nkallhovde@gmail.com" class="btn">Contact Me</a>');
+    });
+</script>

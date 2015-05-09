@@ -8,17 +8,19 @@ def leaderboard(request, cityName):
 	entries = cpg.generateEntries()
 	segments = cpg.segs
 	year = datetime.now().year
-	test = CityName(cityRow)
 	formattedCityName = CityName(cityRow).formattedName
 	otherCities = [CityName(c) for c in City.objects.exclude(pk=cityName)]
 
-	return render(request, 'climber/index.html', {'podium': entries, 'segments': segments,
-												  'city':formattedCityName,
-												  'otherCities':otherCities,
-												  'thisYear':year})
+	return render(request, 'climber/podium/index.html', {'podium': entries, 'segments': segments,
+														 'city':formattedCityName,
+														 'otherCities':otherCities,
+														 'thisYear':year})
 
 def index(request):
-	return render(request, 'climber/index.html')
+	formattedCities = [CityName(c) for c in City.objects.all()]
+	year = datetime.now().year
+	return render(request, 'climber/index.html', {'cities': formattedCities,
+												  'thisYear': year})
 
 '''
 ' ' Various classes used to generate leaderboard

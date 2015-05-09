@@ -1,0 +1,93 @@
+<html lang="en">
+<head>
+	{% load staticfiles %}
+	<meta charset="utf-8">
+	<link rel="shortcut icon" type="image/png" href="{% static "favicon.ico" %}"/>
+	<link href="{% static "bootstrap/css/bootstrap.css" %}" rel="stylesheet">
+	<title>Climber's Crown {{ city }}</title>
+</head>
+<body role="document">
+	<!-- Navbar -->
+	<nav class="navbar navbar-inverse navbar-static-top">
+		<div class="container">
+			<div class="navbar-header">
+				<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+					<span class="sr-only">Toggle navigation</span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+				</button>
+				<a class="navbar-brand" href="/">Climber's Crown</a>
+			</div>
+			<div id="navbar" class="collapse navbar-collapse">
+				<ul class="nav navbar-nav">
+					<li class="active"><a href="#">{{ city }}</a></li>
+					{% for otherCity in otherCities %}
+						<li><a href="/podium/{{ otherCity.name }}">{{ otherCity.formattedName }}</a></li>
+					{% endfor %}
+				</ul>
+			</div>
+		</div>
+	</nav>
+<div class="container" role="main">
+	<!-- Leaderboard -->
+	<h1>{{ city }} Leaderboard {{ thisYear }}</h1>
+	<table class="table table-condensed">
+		<thead>
+		<tr>
+			<th>Rank</th>
+			<th>Athlete</th>
+			{% for seg in segments %}
+				<th><a href="http://www.strava.com/segments/{{ seg.id }}"</a>{{ seg.name }}</th>
+			{% endfor %}
+			<th>Total</th>
+		</tr>
+		</thead>
+		<!-- Leaderboard -->
+		{% for entry in podium %}
+		<tbody>
+		<tr>
+		<!-- Rank -->
+			<td>
+				{% if entry.isChamp %}
+					{% if entry.weeklyChange.isUp %}
+						<a href="#" title="New champion since {{ entry.weeklyChange.dateOfChange }}"><img src="{% static "crown.png" %}" alt="New Champion"/></a>
+					{% else %}
+						<a href="#" title="Current Champion"><img src="{% static "favicon.ico" %}" alt="Champion"/></a>
+					{% endif %}
+				{% elif entry.weeklyChange.isNew %}
+					<a href="#" title="New entry on {{ entry.weeklyChange.dateOfChange }}"><img src="{% static "plus.png" %}" alt="Down"/></a>
+				{% elif entry.weeklyChange.isUp %}
+					<a href="#" title="Up {{ entry.weeklyChange.netChange }} since {{ entry.weeklyChange.dateOfChange }}"><img src="{% static "arrowup.png" %}" alt="Up"/></a>
+				{% elif entry.weeklyChange.isDown %}
+					<a href="#" title="Down {{ entry.weeklyChange.netChange }} since {{ entry.weeklyChange.dateOfChange }}"><img src="{% static "arrowdown.png" %}" alt="Down"/></a>
+				{% else %}
+					<a href="#" title="No change since {{ entry.weeklyChange.dateOfChange }}"><img src="{% static "circle.png" %}" alt="No change"/></a>
+				{% endif %}
+				{{ entry.cityScore.rank }}
+			</td>
+			<!-- Athlete Name -->
+			<td>
+				<a href="http://www.strava.com/athletes/{{ entry.athlete.id }}">{{ entry.athlete.name }}</a>
+				{% if entry.athlete.gender == 'F' %}
+					<img src="{% static "female.png" %}" alt="Female Athlete"/>
+				{% endif %}
+			</td>
+			<!-- Athlete Segment Scores/Times -->
+			{% for segScore in entry.segmentScores %}
+				{% if segScore.hasScore %}
+					<td>
+						<b>{{ segScore.scoreVal }}</b> <i>(<a href="{{ segScore.effortUrl }}" >{{ segScore.effortTimeStr }}</a>)</i>
+					</td>
+				{% else %}
+					<td>--</td>
+				{% endif %}
+			{% endfor %}
+			<!-- Athlete Overall Score -->
+			<td><b>{{ entry.cityScore.cityScore }}</b></td>
+		</tr>
+		{% endfor %}
+		</tbody>
+	</table>
+</div>
+</body>
