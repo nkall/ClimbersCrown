@@ -23,6 +23,7 @@ class Command(BaseCommand):
 			placementChanges = PlacementChange.objects.all()
 			for pc in placementChanges.iterator():
 				pc.delete()
+		print("Updated at " + str(timezone.now()))
 
 
 class CityLeaderboardUpdater:
@@ -86,12 +87,12 @@ class CityLeaderboardUpdater:
 		newLeaderboard = AthleteCityScore.objects.filter(city=self.city.name).order_by('-cityScore', 'cumulativeTime')
 		for i, entry in enumerate(newLeaderboard):
 			if entry.rank != (i+1):
-				print("Changed rank " + str(entry) + " to " + str(i+1))
 				self.changeRank(entry, i+1)
 
 	def changeRank(self, entry, newRank):
 		# We don't care about rank changes outside top 500
 		if newRank <= 500:
+			print("Changed rank " + str(entry) + " to " + str(newRank))
 			self.recordPlacementChange(entry, newRank)
 		entry.rank = newRank
 		entry.save()
@@ -136,8 +137,6 @@ class SegmentLeaderboardUpdater:
 		processedSegmentScores = []
 		for athlete in leaderboard:
 			# Ignore the "contextual" athlete scores around the account which registered the app
-			if athlete.rank > self.leaderboardPageNum * 200:
-				break
 
 			# Get existing athlete data from database, if possible
 			oldAthleteScore = allSegmentScores.filter(athleteId=athlete.athlete_id)
@@ -220,24 +219,27 @@ class SegmentLeaderboardUpdater:
 
 # In case of db flush
 def createDefaultCitySegments():
-	cities = ['San_Diego', 'Santa_Cruz', 'San_Francisco', 'SF_Bay_Area']
+	cities = ['San_Diego', 'San_Diego_County', 'Santa_Cruz', 'San_Francisco']#, 'SF_Bay_Area']
 	cityRows = []
 	for city in cities:
 		cityRow = City(name=city)
 		cityRows.append(cityRow)
 		cityRow.save()
-	segments = [{'id':2457644, 'name':'Soledad Mtn Rd', 'city':cityRows[0]},
+	segments = [{'id':638425, 'name':'Soledad Mtn Rd', 'city':cityRows[0]},
 				{'id':699494, 'name':'Torrey Pines', 'city':cityRows[0]},
 				{'id':1340110, 'name':'Cabrillo Tide Pools', 'city':cityRows[0]},
-				{'id':3291827, 'name':'Empire Grade', 'city':cityRows[1]},
-				{'id':631431, 'name':'Mtn Charlie', 'city':cityRows[1]},
-				{'id':619799, 'name':'Bonny Doon Rd', 'city':cityRows[1]},
-				{'id':141491, 'name':'Twin Peaks', 'city':cityRows[2]},
-				{'id':7167086, 'name':'Legion of Honor Hill', 'city':cityRows[2]},
-				{'id':229781, 'name':'Hawk Hill', 'city':cityRows[2]},
-				{'id':1470688, 'name':'Mt. Diablo', 'city':cityRows[3]},
-				{'id':678363, 'name':'Mt. Tamalpais', 'city':cityRows[3]},
-				{'id':6473039, 'name':'Mt. Hamilton', 'city':cityRows[3]}
+				{'id':273807, 'name':'Palomar South Grade', 'city':cityRows[1]},
+				{'id':612298, 'name':'Honey Springs', 'city':cityRows[1]},
+				{'id':2524949, 'name':'Dehesa and Japatul', 'city':cityRows[1]},
+				{'id':3291827, 'name':'Empire Grade', 'city':cityRows[2]},
+				{'id':631431, 'name':'Mtn Charlie', 'city':cityRows[2]},
+				{'id':619799, 'name':'Bonny Doon Rd', 'city':cityRows[2]},
+				{'id':141491, 'name':'Twin Peaks', 'city':cityRows[3]},
+				{'id':7167086, 'name':'Legion of Honor Hill', 'city':cityRows[3]},
+				{'id':229781, 'name':'Hawk Hill', 'city':cityRows[3]}#,
+				#{'id':1470688, 'name':'Mt. Diablo', 'city':cityRows[3]},
+				#{'id':678363, 'name':'Mt. Tamalpais', 'city':cityRows[3]},
+				#{'id':6473039, 'name':'Mt. Hamilton', 'city':cityRows[3]}
 				]
 	for segment in segments:
 		segRow = Segment(segment['id'], segment['name'], segment['city'])

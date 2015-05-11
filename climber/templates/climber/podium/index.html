@@ -17,7 +17,7 @@
 					<span class="icon-bar"></span>
 					<span class="icon-bar"></span>
 				</button>
-				<a class="navbar-brand" href="/">Climber's Crown</a>
+				<a class="navbar-brand" href="/"><img src="{% static "ClimbersCrownWordmark.png" %}" alt="Climber's Crown"/></a>
 			</div>
 			<div id="navbar" class="collapse navbar-collapse">
 				<ul class="nav navbar-nav">
@@ -38,7 +38,7 @@
 			<th>Rank</th>
 			<th>Athlete</th>
 			{% for seg in segments %}
-				<th><a href="http://www.strava.com/segments/{{ seg.id }}"</a>{{ seg.name }}</th>
+				<th><a href="http://www.strava.com/segments/{{ seg.id }}">{{ seg.name }}</a></th>
 			{% endfor %}
 			<th>Total</th>
 		</tr>
@@ -51,18 +51,18 @@
 			<td>
 				{% if entry.isChamp %}
 					{% if entry.weeklyChange.isUp %}
-						<a href="#" title="New champion since {{ entry.weeklyChange.dateOfChange }}"><img src="{% static "crown.png" %}" alt="New Champion"/></a>
+						<a href="#" data-toggle="tooltip" title="New champion since {{ entry.weeklyChange.dateOfChange }}"><img src="{% static "crown.png" %}" alt="New Champion"/></a>
 					{% else %}
-						<a href="#" title="Current Champion"><img src="{% static "favicon.ico" %}" alt="Champion"/></a>
+						<a href="#" data-toggle="tooltip" title="Current Champion"><img src="{% static "favicon.ico" %}" alt="Champion"/></a>
 					{% endif %}
 				{% elif entry.weeklyChange.isNew %}
-					<a href="#" title="New entry on {{ entry.weeklyChange.dateOfChange }}"><img src="{% static "plus.png" %}" alt="Down"/></a>
+					<a href="#" data-toggle="tooltip" title="New entry on {{ entry.weeklyChange.dateOfChange }}"><img src="{% static "plus.png" %}" alt="Down"/></a>
 				{% elif entry.weeklyChange.isUp %}
-					<a href="#" title="Up {{ entry.weeklyChange.netChange }} since {{ entry.weeklyChange.dateOfChange }}"><img src="{% static "arrowup.png" %}" alt="Up"/></a>
+					<a href="#" data-toggle="tooltip" title="Up {{ entry.weeklyChange.netChange }} since {{ entry.weeklyChange.dateOfChange }}"><img src="{% static "arrowup.png" %}" alt="Up"/></a>
 				{% elif entry.weeklyChange.isDown %}
-					<a href="#" title="Down {{ entry.weeklyChange.netChange }} since {{ entry.weeklyChange.dateOfChange }}"><img src="{% static "arrowdown.png" %}" alt="Down"/></a>
+					<a href="#" data-toggle="tooltip" title="Down {{ entry.weeklyChange.netChange }} since {{ entry.weeklyChange.dateOfChange }}"><img src="{% static "arrowdown.png" %}" alt="Down"/></a>
 				{% else %}
-					<a href="#" title="No change since {{ entry.weeklyChange.dateOfChange }}"><img src="{% static "circle.png" %}" alt="No change"/></a>
+					<a href="#" data-toggle="tooltip" title="No change since {{ entry.weeklyChange.dateOfChange }}"><img src="{% static "circle.png" %}" alt="No change"/></a>
 				{% endif %}
 				{{ entry.cityScore.rank }}
 			</td>
@@ -90,4 +90,10 @@
 		</tbody>
 	</table>
 </div>
+<script src="{% static "jquery-1.11.3.min.js" %}"></script>
+<script src="{% static "bootstrap/js/bootstrap.min.js" %}"></script>
+<script>
+$(function () {
+  $('[data-toggle="tooltip"]').tooltip()
+})</script>
 </body>

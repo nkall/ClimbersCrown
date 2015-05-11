@@ -23,7 +23,7 @@
 					<span class="icon-bar"></span>
 					<span class="icon-bar"></span>
 				</button>
-				<a class="navbar-brand" href="/">Climber's Crown</a>
+				<a class="navbar-brand" href="/"><img src="{% static "ClimbersCrownWordmark.png" %}" alt="Climber's Crown"/></a>
 			</div>
 			<div id="navbar" class="collapse navbar-collapse">
 				<ul class="nav navbar-nav">
@@ -39,30 +39,31 @@
 
 <div class="container" role="main">
 	<!-- Leaderboard -->
-	<p class="lead">We've selected three popular cycling climbs from various California cities and used their Strava data to create overall leaderboards for that area.  Do you have what it takes to earn this year's title of climbing champion in your city?<br><br>
+	<p class="lead">We've selected three popular cycling climbs from various California cities and used their Strava data to create overall climbing leaderboards.  Do you have what it takes to become the {{ thisYear }} climbing champion in your city?<br><br>
 	Select a city:</p>
 		<ul class="fa-ul">
 		{% for city in cities %}
-			<li><i class="fa-li fa fa-square"></i><a href="/podium/{{ city.name }}">{{ city.formattedName }}</a></li>
+			<h3><li><a href="/podium/{{ city.name }}">{{ city.formattedName }}</a></li></h3>
+			<ul class="fa-ul">
+			{% for seg in city.segments %}
+				<li><a href="http://www.strava.com/segments/{{ seg.id }}">{{ seg.name }}</a></li>
+			{% endfor %}
+			</ul>
 		{% endfor %}
 		</ul>
 	<br>
-	<p>This project was based on the Norwegian site <a href="http://www.klatrekonge.com/">Klatrekongen</a> by <a href="http://www.martinhoff.com/">Martin Hoff</a>.  Questions, issues, suggestions?
+	<h3>Scoring System</h3>
+	<p>For each of the three segments in a city, an athlete can earn a maximum of 1000 points.  The athlete on the segment with the top time in the current year receives the maximum possible score. If the segment has been ridden by 1000 or more athletes in the current year, each of the top 1000 gets one fewer point than the athlete before them, so second place gets 999, third gets 998, and so on.  If there are fewer athletes than 1000, points are assigned based on a ratio of their rank versus the overall rider count, so with 500 riders, the second place athlete would get 998 points.  These scores are summed up to determine the total score.  In the case of ties, the athlete with the lowest cumulative time on all three segments is given the advantage.</p>
+
+	<br>
+	<p><i>This project is based on <a href="http://www.klatrekonge.com/">Klatrekongen</a> by <a href="http://www.martinhoff.com/">Martin Hoff</a>.  Questions, issues, suggestions?
 	<!-- Webcrawler Protection -->
 	<script type="text/javascript">
   		document.write('<a href="mailto:nkallhovd' + 'e@gmail.com">Contact Me</a>')
 	</script>
-	</p><br>
-	<h3>Scoring System</h3>
-	<p>For each of the three segments in a city, an athlete can accrue a maximum of 1,000 points.  The athlete on the segment with the top time for this year earns the maximum score. If the segment has been ridden by 1,000 or more athletes this year, each of the top 1,000 gets one less point than the athlete before them, so second place gets 999, third gets 998, and so on.  If there are fewer athletes than 1,000, points are assigned based on a ratio of their rank versus the overall rider count, so with 500 riders, the second place athlete would only get 998 points.  These scores are summed up to create the total score, and in case of ties, the athlete with the lowest cumulative time on all three segments is given the advantage.</p>
+	</i></p>
 </div>
 <br><br>
+<script src="{% static "jquery-1.11.3.min.js" %}"></script>
+<script src="{% static "bootstrap/js/bootstrap.min.js" %}"></script>
 </body>
-
-
-<!-- For some webcrawler protection -->
-<script>
-    $( document ).ready(function() {
-        $('#contactBox').html('<a href="mailto:nkallhovde@gmail.com" class="btn">Contact Me</a>');
-    });
-</script>

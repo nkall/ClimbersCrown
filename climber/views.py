@@ -17,9 +17,13 @@ def leaderboard(request, cityName):
 														 'thisYear':year})
 
 def index(request):
-	formattedCities = [CityName(c) for c in City.objects.all()]
+	cityRows = City.objects.all()
+	segments = [Segment.objects.filter(city=c) for c in cityRows]
+	formattedCities = [CityNameAndSegments(c[0], c[1]) for c in zip(cityRows, segments)]
 	year = datetime.now().year
+	
 	return render(request, 'climber/index.html', {'cities': formattedCities,
+												  'segments': segments,
 												  'thisYear': year})
 
 '''
@@ -30,6 +34,13 @@ class CityName:
 	def __init__(self, city):
 		self.name = city.name
 		self.formattedName = city.name.replace('_',' ')
+
+class CityNameAndSegments():
+	def __init__(self, city, segments):
+		self.name = city.name
+		self.formattedName = city.name.replace('_',' ')
+		self.segments = segments
+
 
 class CityPodiumGenerator:
 	def generateEntries(self):
@@ -117,6 +128,8 @@ class WeeklyChangeEntry:
 				elif self.netChange < 0:
 					self.isDown = True
 					self.netChange = -self.netChange
+				else:
+					self.dateOfChange = (timezone.now() - timedelta(days=7)).strftime("%d %b %Y")
 
 	def __init__(self):
 		# All fields set in consolidateChanges()
