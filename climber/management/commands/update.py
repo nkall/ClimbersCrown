@@ -32,24 +32,23 @@ class CityLeaderboardUpdater:
 		self.removeOldPlacementChanges()
 
 		citySegments = Segment.objects.filter(city=self.city.name)
-		allUpdatedAthletes = []
 		try:
 			for segment in citySegments:
 				slu = SegmentLeaderboardUpdater(segment, self.client)
 				slu.update()
-				updatedAthletes = slu.getUpdatedAthletes()
-				# Concatenate athlete lists without duplicates
-				allUpdatedAthletes += [ath for ath in updatedAthletes \
-									   if ath not in allUpdatedAthletes]
-
-			# Recalculate overall scores for athletes with updated segment times
-			if allUpdatedAthletes != []:
-				self.recalculateCityScores(allUpdatedAthletes)
-				self.updateCityRanks()
 		except (requests.exceptions.ConnectionError, requests.exceptions.HTTPError) as e:
-			print("Encountered error from Strava: " + str(e) + ". Recalculating athlete scores...")
-			self.recalculateCityScores(Athlete.objects.all())
-			self.updateCityRanks()
+			print("Encountered error from Strava: " + str(e))
+		# Recalculate overall scores for city athletes
+		self.recalculateCityScores(self.getCityAthletes())
+		self.updateCityRanks()
+
+	def getCityAthletes(self):
+		cityAthletes = Athlete.objects.raw(
+					'''SELECT s.athleteId_id AS id
+					   FROM   climber_athletesegmentscore s, climber_segment seg
+					   WHERE  s.segmentId_id = seg.id and seg.city_id = %s
+					''', [self.city.name])
+		return cityAthletes
 
 	def recalculateCityScores(self, athleteList):
 		for athlete in athleteList:
@@ -63,7 +62,7 @@ class CityLeaderboardUpdater:
 		overallScore = 0
 		cumulativeTime = 0
 		segmentPlacements = AthleteSegmentScore.objects.raw(
-					'''SELECT s.id, s.segmentScore
+					'''SELECT s.id
 					   FROM   climber_athletesegmentscore s, climber_segment seg
 					   WHERE  s.segmentId_id = seg.id and seg.city_id = %s and s.athleteId_id = %s
 					''', [self.city.name, athleteId])
@@ -124,7 +123,6 @@ class SegmentLeaderboardUpdater:
 			# Stop querying if we've reached entry limit
 			if leaderboard.entry_count < page * 200:
 				break
-		self.updatedAthletes = []
 		processedSegmentScores = []
 		for leaderboard in leaderboards:
 			allSegmentScores = AthleteSegmentScore.objects.filter(segmentId=self.segment.id)
@@ -136,8 +134,6 @@ class SegmentLeaderboardUpdater:
 	def updateLeaderboard(self, leaderboard, allSegmentScores):
 		processedSegmentScores = []
 		for athlete in leaderboard:
-			# Ignore the "contextual" athlete scores around the account which registered the app
-
 			# Get existing athlete data from database, if possible
 			oldAthleteScore = allSegmentScores.filter(athleteId=athlete.athlete_id)
 
@@ -147,13 +143,11 @@ class SegmentLeaderboardUpdater:
 				if (oldAthleteScore[0].segmentTime != athlete.elapsed_time.total_seconds()):
 					self.updateAthleteSegmentScore(oldAthleteScore[0], athlete, 
 												   leaderboard.entry_count)
-					self.updatedAthletes.append(oldAthleteScore[0].athleteId)
 				processedSegmentScores.append(oldAthleteScore[0])
 			else:
 				newAthlete = self.addAthlete(athlete, leaderboard.entry_count)
 				newSegScore = self.addAthleteSegmentScore(newAthlete, athlete, 
 														  leaderboard.entry_count)
-				self.updatedAthletes.append(newAthlete)
 				processedSegmentScores.append(newSegScore)				
 		return processedSegmentScores
 
@@ -161,7 +155,6 @@ class SegmentLeaderboardUpdater:
 	def deleteOldSegmentScores(self, oldScores):
 		for score in oldScores:
 			print("Deleted score: " + str(score))
-			self.updatedAthletes.append(score.athleteId)
 			score.delete()
 
 
@@ -206,14 +199,9 @@ class SegmentLeaderboardUpdater:
 			score = 1
 		return score
 
-	def getUpdatedAthletes(self):
-		return self.updatedAthletes
-
 	def __init__(self, segment, client):
 		self.segment = segment
 		self.client = client
-		# All athletes who were recently added or whose segment times were updated
-		self.updatedAthletes = []
 		# Number of athlete scores we keep track of (x * 200)
 		self.leaderboardPageNum = 5
 

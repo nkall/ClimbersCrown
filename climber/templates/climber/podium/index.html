@@ -51,7 +51,7 @@
 			<td>
 				{% if entry.isChamp %}
 					{% if entry.weeklyChange.isUp %}
-						<a href="#" data-toggle="tooltip" title="New champion since {{ entry.weeklyChange.dateOfChange }}"><img src="{% static "crown.png" %}" alt="New Champion"/></a>
+						<a href="#" data-toggle="tooltip" title="New champ since {{ entry.weeklyChange.dateOfChange }}"><img src="{% static "newcrown.png" %}" alt="New Champion"/></a>
 					{% else %}
 						<a href="#" data-toggle="tooltip" title="Current Champion"><img src="{% static "favicon.ico" %}" alt="Champion"/></a>
 					{% endif %}
