@@ -31,16 +31,25 @@ class CityLeaderboardUpdater:
 	def update(self):
 		self.removeOldPlacementChanges()
 
+		allUpdatedAthletes = []
 		citySegments = Segment.objects.filter(city=self.city.name)
 		try:
 			for segment in citySegments:
 				slu = SegmentLeaderboardUpdater(segment, self.client)
 				slu.update()
+				updatedAthletes = slu.getUpdatedAthletes()
+				allUpdatedAthletes += [ath for ath in updatedAthletes \
+									   if ath not in allUpdatedAthletes]
+
+			# Recalculate overall scores for athletes with updated segment times
+			if allUpdatedAthletes != []:
+				self.recalculateCityScores(allUpdatedAthletes)
+				self.updateCityRanks()
 		except (requests.exceptions.ConnectionError, requests.exceptions.HTTPError) as e:
 			print("Encountered error from Strava: " + str(e))
-		# Recalculate overall scores for city athletes
-		self.recalculateCityScores(self.getCityAthletes())
-		self.updateCityRanks()
+			# Recalculate overall scores for city athletes
+			self.recalculateCityScores(self.getCityAthletes())
+			self.updateCityRanks()
 
 	def getCityAthletes(self):
 		cityAthletes = Athlete.objects.raw(
@@ -124,6 +133,7 @@ class SegmentLeaderboardUpdater:
 			if leaderboard.entry_count < page * 200:
 				break
 		processedSegmentScores = []
+		self.updatedAthletes = []
 		for leaderboard in leaderboards:
 			allSegmentScores = AthleteSegmentScore.objects.filter(segmentId=self.segment.id)
 			processedSegmentScores += self.updateLeaderboard(leaderboard, allSegmentScores)
@@ -140,15 +150,18 @@ class SegmentLeaderboardUpdater:
 			# Add new or improved athlete and segment score to database
 			newAthleteCount = 0
 			if oldAthleteScore:
-				if (oldAthleteScore[0].segmentTime != athlete.elapsed_time.total_seconds()):
-					self.updateAthleteSegmentScore(oldAthleteScore[0], athlete, 
+				newScore = self.calculateSegmentScore(athlete.rank, leaderboard.entry_count)
+				if newScore != oldAthleteScore[0].segmentScore:
+					self.updateAthleteSegmentScore(oldAthleteScore[0], newScore, athlete, 
 												   leaderboard.entry_count)
+					self.updatedAthletes.append(oldAthleteScore[0].athleteId)
 				processedSegmentScores.append(oldAthleteScore[0])
 			else:
 				newAthlete = self.addAthlete(athlete, leaderboard.entry_count)
 				newSegScore = self.addAthleteSegmentScore(newAthlete, athlete, 
 														  leaderboard.entry_count)
-				processedSegmentScores.append(newSegScore)				
+				self.updatedAthletes.append(newAthlete)
+				processedSegmentScores.append(newSegScore)
 		return processedSegmentScores
 
 	# Remove athletes whose times are no longer valid, e.g. over #1000, deleted ride, new year etc.
@@ -181,12 +194,11 @@ class SegmentLeaderboardUpdater:
 
 	# Calculate score for given segment and use it to update segment score entry
 	# This is an ugly hack since Django doesn't allow composite keys and tries to insert instead
-	def updateAthleteSegmentScore(self, oldAthleteScore, apiAthlete, totalEfforts):
-		score = self.calculateSegmentScore(apiAthlete.rank, totalEfforts)
+	def updateAthleteSegmentScore(self, oldAthleteScore, newScore, apiAthlete, totalEfforts):
 		oldAthleteScore.effortId = apiAthlete.effort_id
 		oldAthleteScore.activityId = apiAthlete.activity_id
 		oldAthleteScore.segmentTime = apiAthlete.elapsed_time.total_seconds()
-		oldAthleteScore.segmentScore = score
+		oldAthleteScore.segmentScore = newScore
 		oldAthleteScore.save()
 		
 	# Maximum points that can be earned is 1,000 for 1st place -- all other placements get a
@@ -199,9 +211,14 @@ class SegmentLeaderboardUpdater:
 			score = 1
 		return score
 
+	def getUpdatedAthletes(self):
+		return self.updatedAthletes
+
 	def __init__(self, segment, client):
 		self.segment = segment
 		self.client = client
+		# All athletes who were recently added or whose segment scores were updated
+		self.updatedAthletes = []
 		# Number of athlete scores we keep track of (x * 200)
 		self.leaderboardPageNum = 5
 
@@ -214,11 +231,11 @@ def createDefaultCitySegments():
 		cityRows.append(cityRow)
 		cityRow.save()
 	segments = [{'id':638425, 'name':'Soledad Mtn Rd', 'city':cityRows[0]},
-				{'id':699494, 'name':'Torrey Pines', 'city':cityRows[0]},
+				{'id':633159, 'name':'Torrey Pines', 'city':cityRows[0]},
 				{'id':1340110, 'name':'Cabrillo Tide Pools', 'city':cityRows[0]},
 				{'id':273807, 'name':'Palomar South Grade', 'city':cityRows[1]},
 				{'id':612298, 'name':'Honey Springs', 'city':cityRows[1]},
-				{'id':2524949, 'name':'Dehesa and Japatul', 'city':cityRows[1]},
+				{'id':563739, 'name':'Dehesa Grade', 'city':cityRows[1]},
 				{'id':3291827, 'name':'Empire Grade', 'city':cityRows[2]},
 				{'id':631431, 'name':'Mtn Charlie', 'city':cityRows[2]},
 				{'id':619799, 'name':'Bonny Doon Rd', 'city':cityRows[2]},

@@ -1,0 +1,44 @@
+<html lang="en">
+<head>
+	{% load staticfiles %}
+	<meta charset="utf-8">
+	<link rel="shortcut icon" type="image/png" href="{% static "favicon.ico" %}"/>
+	<link href="{% static "bootstrap/css/bootstrap.css" %}" rel="stylesheet">
+	<title>Climber's Crown</title>
+	<style>
+	.jumbotron {
+		background-image: url("{% static "hampsten.jpg" %}");
+		background-size: cover;
+		vertical-align: top;}
+	</style>
+</head>
+<body role="document">
+	<!-- Navbar -->
+	<nav class="navbar navbar-inverse navbar-static-top">
+		<div class="container">
+			<div class="navbar-header">
+				<a class="navbar-brand" href="/"><img src="{% static "ClimbersCrownWordmark.png" %}" alt="Climber's Crown"/></a>
+			</div>
+		</div>
+	</nav>
+
+<div class="container" role="main">
+	<h3>Scoring</h3>
+	<p>For each of the three segments in a city, an athlete can earn a maximum of 1000 points.  The athlete on the segment with the top time achieved in the current year receives the maximum possible score. If the segment has been ridden by 1000 or more athletes in the current year, each of the top 1000 gets one fewer point than the athlete before them, so second place gets 999, third gets 998, and so on.  If there are fewer athletes than 1000, points are assigned based on a ratio of their rank versus the overall rider count, so with 500 riders, the second place athlete would get 998 points.  These scores are summed up to determine the total score.  In the case of ties, the athlete with the lowest cumulative time on all three segments is given the advantage.</p>
+
+	<h3>The Site</h3>
+	<p>This site was created by Nikolai Kallhovde, a <a href="https://www.strava.com/">Strava</a> addict and aspiring web developer.  The web framework used was <a href="https://www.djangoproject.com/">Django</a> with <a href="http://getbootstrap.com/">Bootstrap</a> to make it look pretty.  Thanks also to <a href="https://github.com/hozn/stravalib">Stravalib</a> for making accessing the Strava API easy.  Check out this project on <a href="https://github.com/nkall/ClimbersCrown">GitHub</a>!</p>
+
+	<p>The <a href="https://commons.wikimedia.org/wiki/File:Andy_HAMPSTEN.jpg">splash image</a> of Andy Hampsten was taken by Eric Houdas, and the <a href="https://commons.wikimedia.org/wiki/File:Plus.png">plus sign</a> was created by user MD66. Both images were distributed under the Creative Commons Attribution-Share Alike 3.0 license.  The <a href="http://iconshow.me/stock-index-up-icon">up arrow</a> and <a href="http://iconshow.me/stock-index-down-icon">down arrow</a> were created by user visualpharm with permission to distribute provided that the source URLs were provided.</p>
+	<br>
+	<p><i>This project is based on <a href="http://www.klatrekonge.com/">Klatrekongen</a> by <a href="http://www.martinhoff.com/">Martin Hoff</a>.  Questions, issues, suggestions?
+	<!-- Webcrawler Protection -->
+	<script type="text/javascript">
+  		document.write('<a href="mailto:nkallhovd' + 'e@gmail.com">Contact Me</a>')
+	</script>
+	</i></p>
+</div>
+<br><br>
+<script src="{% static "jquery-1.11.3.min.js" %}"></script>
+<script src="{% static "bootstrap/js/bootstrap.min.js" %}"></script>
+</body>

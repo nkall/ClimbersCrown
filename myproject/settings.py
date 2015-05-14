@@ -17,14 +17,14 @@ BASE_DIR = os.path.dirname(DJ_PROJECT_DIR)
 # See https://docs.djangoproject.com/en/1.7/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'u9)cu6%4+w&&!k3w%w@ehzh(w$$csdcu2lcgo_6g$sqte802+*'
+SECRET_KEY = ''
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 TEMPLATE_DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.climberscrown.com', '.climberscrown.com.', '.rhcloud.com', '.rhcloud.com.']
 
 
 # Application definition
