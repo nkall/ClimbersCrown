@@ -31,18 +31,18 @@ class CityLeaderboardUpdater:
 	def update(self):
 		self.removeOldPlacementChanges()
 
-		allUpdatedAthletes = []
+		updatedAthletes = []
 		citySegments = Segment.objects.filter(city=self.city.name)
 		try:
 			for segment in citySegments:
 				slu = SegmentLeaderboardUpdater(segment, self.client)
 				slu.update()
-				updatedAthletes = slu.getUpdatedAthletes()
-				allUpdatedAthletes += [ath for ath in updatedAthletes \
-									   if ath not in allUpdatedAthletes]
+				updatedAthletes += slu.getUpdatedAthletes()
+			# Don't take duplicates into account
+			allUpdatedAthletes = list(set(updatedAthletes))
 
 			# Recalculate overall scores for athletes with updated segment times
-			if allUpdatedAthletes != []:
+			if allUpdatedAthletes:
 				self.recalculateCityScores(allUpdatedAthletes)
 				self.updateCityRanks()
 		except (requests.exceptions.ConnectionError, requests.exceptions.HTTPError) as e:
@@ -106,9 +106,17 @@ class CityLeaderboardUpdater:
 		entry.save()
 
 	def recordPlacementChange(self, scoreEntry, newRank):
-		pc = PlacementChange(athleteId=scoreEntry.athleteId, city=self.city,
-							 oldRank=scoreEntry.rank, newRank=newRank, changeDate=timezone.now())
-		pc.save()
+		nowTime = timezone.now()
+		oldChanges = PlacementChange.objects.filter(athleteId=scoreEntry.athleteId, 
+							city=self.city).order_by('-changeDate')
+		# If today already has a PlacementChange recorded, modify it
+		if oldChanges and oldChanges[0].changeDate.date() == nowTime.date():
+			oldChanges[0].newRank = newRank
+			oldChanges[0].save()
+		else:
+			pc = PlacementChange(athleteId=scoreEntry.athleteId, city=self.city,
+							 oldRank=scoreEntry.rank, newRank=newRank, changeDate=nowTime)
+			pc.save()
 
 	def removeOldPlacementChanges(self):
 		placementChanges = PlacementChange.objects.filter(city=self.city)
@@ -140,7 +148,6 @@ class SegmentLeaderboardUpdater:
 		oldSegmentScores = [ath for ath in allSegmentScores if ath not in processedSegmentScores]
 		self.deleteOldSegmentScores(oldSegmentScores)
 
-
 	def updateLeaderboard(self, leaderboard, allSegmentScores):
 		processedSegmentScores = []
 		for athlete in leaderboard:
@@ -167,6 +174,7 @@ class SegmentLeaderboardUpdater:
 	# Remove athletes whose times are no longer valid, e.g. over #1000, deleted ride, new year etc.
 	def deleteOldSegmentScores(self, oldScores):
 		for score in oldScores:
+			self.updatedAthletes.append(score.athleteId)
 			print("Deleted score: " + str(score))
 			score.delete()
 
@@ -207,8 +215,8 @@ class SegmentLeaderboardUpdater:
 	def calculateSegmentScore(self, rank, totalEfforts):
 		maxScore = 1000
 		score = min(round((1 - ((rank - 1) / totalEfforts)) * maxScore), maxScore + 1 - rank)
-		if score < 1:
-			score = 1
+		if score < 0:
+			score = 0
 		return score
 
 	def getUpdatedAthletes(self):
@@ -236,9 +244,9 @@ def createDefaultCitySegments():
 				{'id':273807, 'name':'Palomar South Grade', 'city':cityRows[1]},
 				{'id':612298, 'name':'Honey Springs', 'city':cityRows[1]},
 				{'id':563739, 'name':'Dehesa Grade', 'city':cityRows[1]},
-				{'id':3291827, 'name':'Empire Grade', 'city':cityRows[2]},
-				{'id':631431, 'name':'Mtn Charlie', 'city':cityRows[2]},
-				{'id':619799, 'name':'Bonny Doon Rd', 'city':cityRows[2]},
+				{'id':7960449, 'name':'Empire Grade', 'city':cityRows[2]},
+				{'id':646647, 'name':'Mtn Charlie', 'city':cityRows[2]},
+				{'id':629483, 'name':'Bonny Doon Rd', 'city':cityRows[2]},
 				{'id':141491, 'name':'Twin Peaks', 'city':cityRows[3]},
 				{'id':7167086, 'name':'Legion of Honor Hill', 'city':cityRows[3]},
 				{'id':229781, 'name':'Hawk Hill', 'city':cityRows[3]}#,
@@ -250,4 +258,3 @@ def createDefaultCitySegments():
 		segRow = Segment(segment['id'], segment['name'], segment['city'])
 		segRow.save()
 	return cityRows
-
